@@ -1022,8 +1022,7 @@
         const DISCOUNT_THRESHOLD = 50000;
         const DISCOUNT_PERCENT = 0.10;
         // YOUR EXACT GOOGLE SHEET CSV URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv'
-        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
-
+       const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1SVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/export?format=csv';
         // ===== STATE =====
         let products = [];
         let cart = [];
@@ -1116,25 +1115,33 @@
 
         // ===== GOOGLE SHEETS INTEGRATION - FIXED FOR YOUR CSV =====
         async function loadProductsFromSheet() {
-            try {
-                console.log('Loading products from:', SHEET_CSV_URL);
-                const response = await fetch(SHEET_CSV_URL);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const csvText = await response.text();
-                console.log('CSV loaded, length:', csvText.length);
-                
-                products = parseYourCSV(csvText);
-                console.log(`✅ Successfully loaded ${products.length} products from your Google Sheet`);
-                
-            } catch (error) {
-                console.error('❌ Error loading products from sheet:', error);
-                products = [];
-           }
+    try {
+        console.log('Attempting to fetch inventory...');
+        // The ?cb=Date.now() forces Google to send the most recent data
+        const response = await fetch(SHEET_CSV_URL + '&cb=' + Date.now());
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const csvText = await response.text();
+        console.log('Data received from Google Sheets');
+        
+        products = parseYourCSV(csvText);
+        
+        if (products.length > 0) {
+            console.log(`✅ ${products.length} Jewelry items loaded!`);
+            renderProducts(); // This draws them on the screen
+        } else {
+            console.warn('Sheet connected but no products found. Using fallback.');
+            loadFallbackProducts();
+        }
+        
+    } catch (error) {
+        console.error('❌ Connection Error:', error);
+        loadFallbackProducts();
+    }
+}
         // Parse YOUR specific CSV format: ID, NAME, CATEGORY, PRICE, QUANTITY, IMAGE URL, COLOR
 function parseYourCSV(csv) {
   
