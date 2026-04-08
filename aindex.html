@@ -761,20 +761,21 @@
         <div class="nav-actions">
             <div class="nav-icon" id="searchIcon" title="Search">
                 <i class="fas fa-search"></i>
-                <div id="searchBar" style="display:none; position:absolute; top:100%; left:0; width:100%; padding:0.8rem 5%; background:rgba(8,8,10,0.98); border-bottom:var(--border-gold);">
-    <input id="searchInput" type="text" placeholder="Search jewelry..." 
-        style="width:100%; padding:0.8rem 1.2rem; background:var(--bg-elevated); color:var(--text-primary); border:var(--border-gold); border-radius:50px; font-size:0.95rem; outline:none; font-family:var(--font-sans);">
-</div>
             </div>
             <div class="nav-icon cart-count" data-count="0" id="cartIcon" title="View Cart">
                 <i class="fas fa-shopping-bag"></i>
             </div>
         </div>
+        <!-- Search bar as direct child of nav so position:absolute spans full width -->
+        <div id="searchBar" style="display:none; position:absolute; top:100%; left:0; width:100%; padding:0.8rem 5%; background:rgba(8,8,10,0.98); border-bottom:var(--border-gold); z-index:999;">
+            <input id="searchInput" type="text" placeholder="Search jewelry..."
+                style="width:100%; padding:0.8rem 1.2rem; background:var(--bg-elevated); color:var(--text-primary); border:var(--border-gold); border-radius:50px; font-size:0.95rem; outline:none; font-family:var(--font-sans);">
+        </div>
     </nav>
 
     <!-- HOME VIEW - ANIMATED WITH FLOATING JEWELS -->
     <section id="home" class="view active">
-       <section class="hero"
+       <section class="hero">
     <div class="hero-video-container">
         <video autoplay muted loop playsinline poster="hero-placeholder.jpg" class="hero-video">
             <source src="hero-bg.mp4" type="video/mp4">
@@ -1632,32 +1633,33 @@ function convertToDirectLink(url) {
                 closeRefundModal();
             }
         });
-    </script>
-    document.getElementById('searchIcon').addEventListener('click', () => {
-    const bar = document.getElementById('searchBar');
-    const isVisible = bar.style.display === 'block';
-    bar.style.display = isVisible ? 'none' : 'block';
-    if (!isVisible) document.getElementById('searchInput').focus();
-});
 
-document.getElementById('searchInput').addEventListener('input', function() {
-    const query = this.value.toLowerCase().trim();
-    if (!query) {
-        renderProducts();
-        return;
-    }
-    showView('collection'); // switch to collection view
-    const filtered = products.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query)
-    );
-    const grid = document.getElementById('productsGrid');
-    if (filtered.length === 0) {
-        grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found for "' + query + '"</p>';
-    } else {
-        grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
-    }
-});
-</script>
+        // ===== SEARCH FUNCTIONALITY =====
+        document.getElementById('searchIcon').addEventListener('click', () => {
+            const bar = document.getElementById('searchBar');
+            const isVisible = bar.style.display === 'block';
+            bar.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) document.getElementById('searchInput').focus();
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            if (!query) {
+                renderProducts();
+                return;
+            }
+            showView('collection');
+            const filtered = products.filter(p =>
+                p.name.toLowerCase().includes(query) ||
+                p.category.toLowerCase().includes(query)
+            );
+            const grid = document.getElementById('productsGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found for "' + query + '"</p>';
+            } else {
+                grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
+            }
+        });
+    </script>
 </body>
 </html>
