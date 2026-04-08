@@ -1395,7 +1395,7 @@ function convertToDirectLink(url) {
     const hasColors = product.colors && product.colors.length > 0;
     const colorOptions = hasColors ? product.colors.map((c, i) => 
         `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
-    ).join('') : '';
+    ).join('') :
     
     // Staggered animation delay for beautiful entrance
     const delay = isFeatured ? index * 0.12 : index * 0.07;
@@ -1427,7 +1427,6 @@ function convertToDirectLink(url) {
                 </button>
             </div>
         </div>
-        
         }
 
         function getColorHex(color) {
