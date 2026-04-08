@@ -856,7 +856,7 @@
 
             <div class="about-grid">
                 <div class="about-image">
-                    <img src="https://drive.google.com/file/d/1ifDPEG0-rhY11f5RuDoB9h4gDGAa76sb/view?usp=sharing" ABIKE Jewelry">
+                    <img src="https://drive.google.com/uc?export=view&id=1ifDPEG0-rhY11f5RuDoB9h4gDGAa76sb" alt="ABIKE Jewelry">
                 </div>
                 <div class="about-content">
                     <h2>We Believe <span>Everyone Deserves to Shine</span></h2>
@@ -1138,7 +1138,7 @@
                 console.error('❌ Error loading products from sheet:', error);
                 products = [];
            }
-
+        }
         // Parse YOUR specific CSV format: ID, NAME, CATEGORY, PRICE, QUANTITY, IMAGE URL, COLOR
 function parseYourCSV(csv) {
   
@@ -1164,6 +1164,7 @@ function parseYourCSV(csv) {
             name: formatProductName(values[1] || 'Untitled Item'),
             category: normalizeCategory(values[2] || 'other'),
             price: parseNairaPrice(rawPrice),
+            quantity: parseInt(values[4]) || 0,
            
  // FIX 2: Ensure Google Drive links are converted to direct images
             image: convertToDirectLink(values[5] || ''),
@@ -1259,12 +1260,6 @@ function convertToDirectLink(url) {
                 .replace(/,/g, ''); // Remove commas
             return parseFloat(cleaned) || 0;
         }
-
-        // Clean and validate image URL - CRITICAL FIX
-       function cleanImageUrl(url) {
-    if (!url || url === '' || url.toLowerCase() === 'n/a') return '';
-    
-    let clean = url.replace(/^["']|["']$/g, '').trim();
     
     // If it's already a Google Drive thumbnail link, just return it
     if (clean.includes('drive.google.com/thumbnail')) {
