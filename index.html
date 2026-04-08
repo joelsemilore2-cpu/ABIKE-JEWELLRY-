@@ -656,7 +656,7 @@
             color: var(--text-secondary); text-decoration: none; line-height: 2.1;
             font-size: 1rem; transition: var(--transition);
         }
-        .footer-section a { display: inline-block; margin: 0.3rem 0; }
+       .footer-section a { display: block; margin: 0.6rem 0; }
         .footer-section a:hover { color: var(--gold-primary); transform: translateX(4px); }
         
         .social-links { display: flex; gap: 1rem; margin-top: 1.2rem; }
@@ -800,7 +800,7 @@
                     </button>
                 </div>
             </div>
-        </div>
+       </section>
 
         <!-- Featured Preview -->
         <div class="page-section">
@@ -1001,8 +1001,8 @@
             <div class="footer-section">
     <h3>Information</h3>
     <a href="javascript:void(0)" onclick="openRefundModal()">Refund Policy</a>
-   <a href= "onclick="showView('about')" Abike</a>
-   <a href= "onclick="showView('collection')" Jewelry</a>
+  <a href="#" onclick="showView('about')">About ABIKE</a>
+   <a href="#" onclick="showView('collection')">Our Jewelry</a>
 </div>
         </div>
         <div class="footer-bottom">
@@ -1022,7 +1022,7 @@
         const DISCOUNT_THRESHOLD = 50000;
         const DISCOUNT_PERCENT = 0.10;
         // YOUR EXACT GOOGLE SHEET CSV URL
-       const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1SVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/export?format=csv';
+      const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
         // ===== STATE =====
         let products = [];
         let cart = [];
