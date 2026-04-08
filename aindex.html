@@ -812,7 +812,7 @@
                 <button class="filter-btn" data-filter="ring">Rings</button>
                 <button class="filter-btn" data-filter="earrings">Earrings</button>
                 <button class="filter-btn" data-filter="bracelet">Bracelets</button>
-                <button class="filter-btn" data-filter="sets">✨ Jewelry Sets</button>
+                <button class="filter-btn" data-filter="sets">Jewelry Sets</button>
             </div>
 
             <div class="products-grid" id="productsGrid">
@@ -1217,14 +1217,15 @@ function convertToDirectLink(url) {
 
         // Normalize category to match filter buttons
         function normalizeCategory(cat) {
-            const c = cat.toLowerCase().trim();
-            if (c.includes('necklace')) return 'necklace';
-            if (c.includes('bracelet')) return 'bracelet';
-            if (c.includes('ring')) return 'ring';
-            if (c.includes('earring')) return 'earrings';
-            if (c.includes('watch')) return 'wristwatch';
-            if (c.includes('set') || c.includes('jewelry set')) return 'sets';
-            return 'other';
+    const c = cat.toLowerCase().trim();
+    if (c.includes('necklace')) return 'necklace';
+    if (c.includes('bracelet')) return 'bracelet';
+    if (c.includes('ring')) return 'ring';
+    if (c.includes('earring')) return 'earrings';
+    if (c.includes('watch')) return 'wristwatch';
+    // Matches "sets" column from your sheet
+    if (c.includes('set')) return 'sets'; 
+    return 'other';
         }
 
         // Parse Naira price: "N5,000" or "5000" → 5000
