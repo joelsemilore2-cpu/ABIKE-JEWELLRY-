@@ -1027,6 +1027,25 @@
         let products = [];
         let cart = [];
 
+        // PASTE THE CLEANER HERE
+function cleanImageUrl(url) {
+    if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
+    
+    let clean = url.replace(/^["']|["']$/g, '').trim();
+    
+    // If it's already a thumbnail link, return it
+    if (clean.includes('drive.google.com/thumbnail')) return clean;
+
+    // Convert standard Drive links to direct image links
+    if (clean.includes('drive.google.com')) {
+        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        }
+    }
+    return clean;
+}
+        
         // ===== INIT =====
         window.addEventListener('load', async () => {
             // Create sparkle particles for hero
@@ -1372,43 +1391,43 @@ function convertToDirectLink(url) {
             });
         }
 
-        function createProductCard(product, index, isFeatured = false) {
-            const hasColors = product.colors && product.colors.length > 0;
-            const colorOptions = hasColors ? product.colors.map((c, i) => 
-                `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
-            ).join('') : '';
-            
-            // Staggered animation delay for beautiful entrance
-            const delay = isFeatured ? index * 0.12 : index * 0.07;
-            
-            return `
-                <div class="product-card" style="animation-delay: ${delay}s">
-                    ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
-                    <button class="product-wishlist" onclick="toggleWishlist(this)" title="Add to wishlist">
-                        <i class="far fa-heart"></i>
-                    </button>
-                    <div class="product-image-wrapper">
-                        <img src="${product.image || 'https://via.placeholder.com/600x600/121218/D4AF37?text=ABIKE+Jewelry&font=playfair'}" 
-                             alt="${product.name}" 
-                             class="product-image"
-                             onerror="this.src='https://via.placeholder.com/600x600/121218/D4AF37?text=No+Image+Available&font=playfair'">
+       function createProductCard(product, index, isFeatured = false) {
+    const hasColors = product.colors && product.colors.length > 0;
+    const colorOptions = hasColors ? product.colors.map((c, i) => 
+        `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
+    ).join('') : '';
+    
+    // Staggered animation delay for beautiful entrance
+    const delay = isFeatured ? index * 0.12 : index * 0.07;
+    
+    return `
+        <div class="product-card" style="animation-delay: ${delay}s">
+            ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+            <button class="product-wishlist" onclick="toggleWishlist(this)" title="Add to wishlist">
+                <i class="far fa-heart"></i>
+            </button>
+            <div class="product-image-wrapper">
+                <img src="${cleanImageUrl(product.image)}" 
+                     alt="${product.name}" 
+                     class="product-image"
+                     onerror="this.src='hero-placeholder.jpg'">
+            </div>
+            <div class="product-info">
+                <div class="product-category">${product.category}</div>
+                <h3 class="product-title">${product.name}</h3>
+                <div class="product-price">₦${parseInt(product.price).toLocaleString('en-NG')}</div>
+                ${hasColors ? `
+                    <div class="color-selector">
+                        ${colorOptions}
+                        <span class="color-label">Color</span>
                     </div>
-                    <div class="product-info">
-                        <div class="product-category">${product.category}</div>
-                        <h3 class="product-name">${product.name}</h3>
-                        <div class="product-price">₦${product.price.toLocaleString('en-NG')}</div>
-                        ${hasColors ? `
-                            <div class="color-selector">
-                                ${colorOptions}
-                                <span class="color-label">Color</span>
-                            </div>
-                        ` : ''}
-                        <button class="add-to-cart" onclick="addToCart(${product.id}, this)">
-                            <i class="fas fa-shopping-bag"></i> Add to Cart
-                        </button>
-                    </div>
-                </div>
-            `;
+                ` : ''}
+                <button class="add-to-cart" onclick="addToCart(${product.id}, this)">
+                    <i class="fas fa-shopping-bag"></i> Add to Cart
+                </button>
+            </div>
+        </div>
+        
         }
 
         function getColorHex(color) {
