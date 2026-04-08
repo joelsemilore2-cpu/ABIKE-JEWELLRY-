@@ -1023,6 +1023,17 @@
         const DISCOUNT_PERCENT = 0.10;
         // YOUR EXACT GOOGLE SHEET CSV URL
       const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
+       function cleanImageUrl(url) {
+    if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
+    let clean = url.replace(/^["']|["']$/g, '').trim();
+    if (clean.includes('drive.google.com')) {
+        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        }
+    }
+    return clean;
+}
         // ===== STATE =====
         let products = [];
         let cart = [];
@@ -1187,23 +1198,9 @@ function parseYourCSV(csv) {
             category: normalizeCategory(values[2] || 'other'),
             price: parseNairaPrice(rawPrice),
             quantity: parseInt(values[4]) || 0,
-           
- // FIX 2: Ensure Google Drive links are converted to direct images
-            image: convertToDirectLink(values[5] || ''),
-            colors: parseColors(values[6] || 'gold'),
-            badge: determineBadge(rawPrice)
-        };
-        
-        // Add to list if name and price exist
-        if (product.name && product.price > 0) {
-            result.push(product);
         }
     }
     
-    console.log("Processed Products:", result);
-    return result;
-}
-
 // FIX 3: New helper to ensure Google Drive thumbnails/files actually show up
 function convertToDirectLink(url) {
     if (!url) return '';
@@ -1686,6 +1683,7 @@ function convertToDirectLink(url) {
             }
         });
         
+// Force hide loading screen after 3 seconds as a fail-safe
 setTimeout(() => {
     const loader = document.getElementById('loadingScreen');
     if (loader && loader.style.display !== 'none') {
