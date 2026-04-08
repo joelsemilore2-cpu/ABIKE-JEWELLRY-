@@ -148,12 +148,32 @@
 
         /* HERO SECTION - STUNNING ANIMATIONS */
         .hero {
-            min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            position: relative; padding: 0 5%; background: 
-                radial-gradient(ellipse at center, #1a1a2e 0%, var(--bg-dark) 70%),
-                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="%23D4AF37" opacity="0.15"/><circle cx="80" cy="40" r="0.8" fill="%23D4AF37" opacity="0.1"/><circle cx="40" cy="80" r="1.2" fill="%23D4AF37" opacity="0.2"/></svg>');
-            background-size: cover, 150px 150px;
-            text-align: center; overflow: hidden;
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    overflow: hidden; /* Keeps the video inside the hero area */
+}
+.hero-video-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0; /* Behind the text */
+}
+.hero-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.4) contrast(1.1); /* Makes the video darker so gold text pops */
+}
+.hero-content {
+    position: relative;
+    z-index: 1; /* Puts text in front of video */
         }
 
         /* Floating Jewelry Decorations - MAIN REQUEST */
@@ -750,16 +770,21 @@
 
     <!-- HOME VIEW - ANIMATED WITH FLOATING JEWELS -->
     <section id="home" class="view active">
-        <div class="hero">
-            <!-- Floating Jewelry Decorations - MAIN FEATURE -->
-            <div class="floating-jewels">
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=150&auto=format&fit=crop" alt=""></div>
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=150&auto=format&fit=crop" alt=""></div>
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?w=150&auto=format&fit=crop" alt=""></div>
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=150&auto=format&fit=crop" alt=""></div>
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=150&auto=format&fit=crop" alt=""></div>
-                <div class="jewel"><img src="https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=150&auto=format&fit=crop" alt=""></div>
-            </div>
+       <section class="hero" id="home">
+    <div class="hero-video-container">
+        <video autoplay muted loop playsinline poster="hero-placeholder.jpg" class="hero-video">
+            <source src="hero-bg.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="hero-content">
+        <div class="hero-badge">✨ Luxury Fashion Jewelry</div>
+        <h1 class="hero-title">Timeless Beauty, <br><span>Affordable Price.</span></h1>
+        <p class="hero-subtitle">Curated premium jewelry for the modern woman who values elegance and quality.</p>
+        <div class="hero-btns">
+            <a href="#collection" class="btn btn-gold">Shop Collection</a>
+            <a href="#about" class="btn btn-outline">Our Story</a>
+        </div>
+</section>
             
             <!-- Sparkle Particles -->
             <div class="sparkles" id="sparkles"></div>
@@ -836,7 +861,7 @@
                 <div class="about-content">
                     <h2>We Believe <span>Everyone Deserves to Shine</span></h2>
                     <p>ABIKE Jewelry is a Nigerian retail brand dedicated to bringing you beautiful, high-quality fashion jewelry at prices that make sense.</p>
-                    <p>Our pieces are crafted with care using premium materials like gold-plated alloys, cubic zirconia, and elegant finishes – designed to look luxurious while being kind to your wallet.</p>
+                    <p>Our pieces are crafted with care using premium materials like gold-plated alloys, cubic zirconia, and elegant finishes – designed to look luxurious while being kind to your wallets.</p>
                     
                     <div class="about-features">
                         <div class="about-feature"><i class="fas fa-check-circle"></i> <span>100% Nickel-Free & Skin-Safe</span></div>
@@ -873,13 +898,13 @@
                 <div class="contact-card">
                     <div class="contact-icon"><i class="fas fa-truck"></i></div>
                     <h3>Delivery Info</h3>
-                    <p>Lagos & nationwide delivery</p>
+                    <p>Nationwide delivery</p>
                     <p style="font-size: 0.95rem; margin-top: 0.5rem; color: var(--text-secondary);">Delivery fees apply based on location</p>
                 </div>
                 <div class="contact-card">
                     <div class="contact-icon"><i class="fas fa-clock"></i></div>
                     <h3>Business Hours</h3>
-                    <p>Mon - Sat: 9AM - 6PM</p>
+                    <p>Mon - Sat: 9AM - 5PM</p>
                     <p>Sunday: Closed</p>
                 </div>
                 <div class="contact-card">
@@ -958,18 +983,16 @@
         <div class="footer-content">
             <div class="footer-section">
                 <h3>ABIKE Jewelry</h3>
-                <p>Beautiful, affordable fashion jewelry for every occasion. Made for Nigerians, loved by everyone.</p>
+                <p>Beautiful, Affordable Sashion Jewelry For Every Occasion. </p>
                 <div class="social-links">
-                    <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
                     <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                    <a href="#" title="Whatsapp"><i class="fab fa-whatsapp"></i></a>
                 </div>
             </div>
             <div class="footer-section">
                 <h3>Shop</h3>
                 <a href="#" onclick="showView('collection')">All Products</a>
                 <a href="#" onclick="showView('collection')">New Arrivals</a>
-                <a href="#" onclick="showView('collection')">Best Sellers</a>
                 <a href="#" onclick="showView('collection')">Gift Sets</a>
             </div>
             <div class="footer-section">
@@ -980,14 +1003,14 @@
                 <a href="#" onclick="showView('contact')">FAQ</a>
             </div>
             <div class="footer-section">
-                <h3>Legal</h3>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-                <a href="#">Refund Policy</a>
-            </div>
+    <h3>Information</h3>
+    <a href="javascript:void(0)" onclick="openRefundModal()">Refund Policy</a>
+    <a href="#about">About ABIKE</a>
+    <a href="#collection">Our Jewelry</a>
+</div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 ABIKE Jewelry Nigeria. All rights reserved. Crafted with <i class="fas fa-heart" style="color: var(--gold-primary);"></i> in Lagos.</p>
+            <p>&copy; 2026 ABIKE Jewelry Nigeria. All rights reserved. Crafted with <i class="fas fa-heart" style="color: var(--gold-primary);"></i> in Lagos.</p>
         </div>
     </footer>
 
@@ -1238,26 +1261,25 @@ function convertToDirectLink(url) {
         }
 
         // Clean and validate image URL - CRITICAL FIX
-        function cleanImageUrl(url) {
-            if (!url || url.toLowerCase() === 'n/a' || url.toLowerCase() === 'null' || url === '') {
-                return '';
-            }
-            
-            // Remove quotes and trim
-            let clean = url.replace(/^["']|["']$/g, '').trim();
-            
-            // Ensure https protocol
-            if (clean && !clean.startsWith('http')) {
-                clean = 'https://' + clean.replace(/^\/\//, '');
-            }
-            
-            // Basic URL validation
-            try {
-                new URL(clean);
-                return clean;
-            } catch {
-                return '';
-            }
+       function cleanImageUrl(url) {
+    if (!url || url === '' || url.toLowerCase() === 'n/a') return '';
+    
+    let clean = url.replace(/^["']|["']$/g, '').trim();
+    
+    // If it's already a Google Drive thumbnail link, just return it
+    if (clean.includes('drive.google.com/thumbnail')) {
+        return clean;
+    }
+
+    // If it's a standard Google Drive sharing link, convert it to a direct view
+    if (clean.includes('drive.google.com')) {
+        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            // This converts a standard link to a direct image link
+            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        }
+    
+    return clean;
         }
 
         // Parse colors: "gold; silver" → ["gold", "silver"]
@@ -1616,6 +1638,24 @@ function convertToDirectLink(url) {
         // Close toast on click
         document.getElementById('toast').addEventListener('click', function() {
             this.classList.remove('show');
+        });
+           // ===== REFUND MODAL FUNCTIONS =====
+        function openRefundModal() {
+            const modal = document.getElementById('refundModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeRefundModal() {
+            const modal = document.getElementById('refundModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        // Close modal if user clicks outside the box
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('refundModal');
+            if (event.target == modal) {
+                closeRefundModal();
+            }
         });
     </script>
 </body>
