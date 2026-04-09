@@ -1110,7 +1110,7 @@ function cleanImageUrl(url) {
 window.addEventListener('load', async () => {
     createSparkles();
     
-    // Hide loader with fallback
+    // Hide loader
     const loader = document.getElementById('loader');
     const hideLoader = () => {
         if (loader) {
@@ -1443,75 +1443,47 @@ function whatsappCheckout() {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
 }
 
-// ===== SEARCH =====
+// ===== SEARCH (single implementation) =====
 const searchIcon = document.getElementById('searchIcon');
 const searchBar = document.getElementById('searchBar');
 const searchInput = document.getElementById('searchInput');
-searchIcon.addEventListener('click', () => {
-    searchBar.style.display = searchBar.style.display === 'none' ? 'block' : 'none';
-    if (searchBar.style.display === 'block') searchInput.focus();
-});
-searchInput.addEventListener('input', function() {
-    const query = this.value.toLowerCase().trim();
-    showView('collection');
-    if (!query) { renderProducts(); return; }
-    const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
-    const grid = document.getElementById('productsGrid');
-    grid.innerHTML = filtered.length ? filtered.map((p, i) => createProductCard(p, i)).join('') 
-        : '<p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:3rem;">No results found.</p>';
-});
+
+if (searchIcon) {
+    searchIcon.addEventListener('click', () => {
+        if (searchBar.style.display === 'none' || searchBar.style.display === '') {
+            searchBar.style.display = 'block';
+            searchInput.focus();
+        } else {
+            searchBar.style.display = 'none';
+        }
+    });
+}
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        showView('collection');
+        if (!query) { renderProducts(); return; }
+        const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+        const grid = document.getElementById('productsGrid');
+        if (filtered.length === 0) grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found.</p>';
+        else grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
+    });
+}
 
 // ===== REFUND MODAL (dummy) =====
 function openRefundModal() {
     alert('Refund Policy: Items can be returned within 7 days in original condition.');
 }
 
-    function closeRefundModal() {
-        const modal = document.getElementById('refundModal');
-        if (modal) modal.classList.remove('active');
+// Fallback loader hide (safety)
+setTimeout(() => {
+    const loader = document.getElementById('loader');
+    if (loader && loader.style.display !== 'none') {
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
     }
-
-    window.addEventListener('click', function(event) {
-        const modal = document.getElementById('refundModal');
-        if (event.target == modal) {
-            closeRefundModal();
-        }
-    });
-
-    // ===== SEARCH FUNCTIONALITY =====
-    const searchIcon = document.getElementById('searchIcon');
-    const searchBar = document.getElementById('searchBar');
-    const searchInput = document.getElementById('searchInput');
-
-    if (searchIcon) {
-        searchIcon.addEventListener('click', () => {
-            if (searchBar.style.display === 'none' || searchBar.style.display === '') {
-                searchBar.style.display = 'block';
-                searchInput.focus();
-            } else {
-                searchBar.style.display = 'none';
-            }
-        });
-    }
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase().trim();
-            showView('collection');
-            if (!query) { renderProducts(); return; }
-            const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
-            const grid = document.getElementById('productsGrid');
-            if (filtered.length === 0) grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found.</p>';
-            else grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
-        });
-    }
-
-    // Fallback loader hide (safety)
-    setTimeout(() => {
-        const loader = document.getElementById('loader');
-        if (loader && loader.style.display !== 'none') {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-        }
-    }, 5000);
-</script>
+}, 5000);
+ </script>
+</body>
+</html>
