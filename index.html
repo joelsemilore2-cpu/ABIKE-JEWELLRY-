@@ -167,12 +167,13 @@
     z-index: 0; /* Behind the text */
 }
 .hero-video {
-    position: absolute;
+   position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: saturate(1.3) brightness(1); /* This forces color saturation up */
+    /* Remove any filter that might desaturate */
+    filter: none;
     z-index: -1;
 }
 
@@ -180,7 +181,8 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(8,8,10,0.1) 0%, rgba(8,8,10,0.6) 100%); /* Lighter overlay so colors show through */
+    /* Make overlay much lighter to preserve color */
+    background: linear-gradient(to bottom, rgba(8,8,10,0.2) 0%, rgba(8,8,10,0.5) 100%);
     z-index: 0;
 }
         
@@ -1051,446 +1053,418 @@ window.onload = function() {
     </div>
 
     <script>
-    // ===== CONFIGURATION =====
-    const WHATSAPP_NUMBER = '2348168764365';
-    const DISCOUNT_THRESHOLD = 50000;
-    const DISCOUNT_PERCENT = 0.10;
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
+
+// ===== CONFIGURATION =====
+const WHATSAPP_NUMBER = '2348168764365';
+const DISCOUNT_THRESHOLD = 50000;
+const DISCOUNT_PERCENT = 0.10;
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
+
+// ===== STATE =====
+let products = [];
+let cart = JSON.parse(localStorage.getItem('abike_cart')) || [];
+
+// ===== UTILITIES =====
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toastMessage').textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+// ===== VIEW NAVIGATION =====
+function showView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    const navLink = document.querySelector(`.nav-link[data-view="${viewId}"]`);
+    if (navLink) navLink.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== CART DISPLAY UPDATE =====
+function updateCartDisplay() {
+    const cartIcon = document.querySelector('.cart-count');
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartIcon.setAttribute('data-count', totalItems);
+    if (document.getElementById('cart').classList.contains('active')) {
+        renderCartPage();
+    }
+}
+
+// ===== IMAGE CLEANER =====
+function cleanImageUrl(url) {
+    if (!url || url === '' || url.toLowerCase() === 'n/a') return 'https://via.placeholder.com/400x400/D4AF37/000000?text=ABIKE';
+    let clean = url.replace(/^["']|["']$/g, '').trim();
+    if (clean.includes('drive.google.com/thumbnail')) return clean;
+    if (clean.includes('drive.google.com')) {
+        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        }
+    }
+    return clean;
+}
+
+// ===== INITIALIZATION =====
+window.addEventListener('load', async () => {
+    createSparkles();
     
-    // ===== STATE =====
-    let products = [];
-    let cart = JSON.parse(localStorage.getItem('abike_cart')) || [];
-
-    // ===== IMAGE CLEANER (Fixes Google Drive Links) =====
-    function cleanImageUrl(url) {
-        if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
-        let clean = url.replace(/^["']|["']$/g, '').trim();
-        if (clean.includes('drive.google.com/thumbnail')) return clean;
-        if (clean.includes('drive.google.com')) {
-            const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
-            if (fileIdMatch && fileIdMatch[1]) {
-                return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
-            }
+    // Hide loader with fallback
+    const loader = document.getElementById('loader');
+    const hideLoader = () => {
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
         }
-        return clean;
+    };
+    setTimeout(hideLoader, 1500);
+    setTimeout(hideLoader, 5000); // safety fallback
+    
+    await loadProductsFromSheet();
+    if (products.length === 0) {
+        console.warn('Using fallback products');
+        loadFallbackProducts();
     }
+    
+    renderFeatured();
+    renderProducts();
+    updateCartDisplay();
+    setupNavLinks();
+    window.addEventListener('scroll', handleNavScroll);
+});
 
-    // ===== INIT =====
-    window.addEventListener('load', async () => {
-        createSparkles();
-        
-        // Hide loader smoothly (with absolute timeout fallback)
-        const loader = document.getElementById('loader');
-        const hideLoader = () => {
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 500);
-            }
-        };
-        setTimeout(hideLoader, 1500);   // normal hide
-        setTimeout(hideLoader, 5000);    // safety fallback
-        
-        await loadProductsFromSheet();
-        
-        if (products.length === 0) {
-            console.log('Using fallback products');
-            loadFallbackProducts();
-        }
-        
-        renderFeatured();
-        renderProducts();
-        updateCartDisplay();
-        setupNavLinks();
-        window.addEventListener('scroll', handleNavScroll);
+// ===== SPARKLES =====
+function createSparkles() {
+    const container = document.getElementById('sparkles');
+    if (!container) return;
+    for (let i = 0; i < 30; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.style.left = Math.random() * 100 + '%';
+        sparkle.style.top = Math.random() * 100 + '%';
+        sparkle.style.animationDelay = Math.random() * 3 + 's';
+        sparkle.style.animationDuration = (2 + Math.random() * 3) + 's';
+        container.appendChild(sparkle);
+    }
+}
+
+function handleNavScroll() {
+    const nav = document.getElementById('navbar');
+    if (window.scrollY > 60) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+}
+
+function setupNavLinks() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            showView(link.dataset.view);
+        });
     });
+    document.getElementById('cartIcon').addEventListener('click', () => showView('cart'));
+}
 
-    // ===== ANIMATIONS =====
-    function createSparkles() {
-        const container = document.getElementById('sparkles');
-        if(!container) return;
-        for (let i = 0; i < 30; i++) {
-            const sparkle = document.createElement('div');
-            sparkle.className = 'sparkle';
-            sparkle.style.left = Math.random() * 100 + '%';
-            sparkle.style.top = Math.random() * 100 + '%';
-            sparkle.style.animationDelay = Math.random() * 3 + 's';
-            sparkle.style.animationDuration = (2 + Math.random() * 3) + 's';
-            sparkle.style.opacity = 0.6 + Math.random() * 0.4;
-            container.appendChild(sparkle);
-        }
+// ===== GOOGLE SHEETS FETCH =====
+async function loadProductsFromSheet() {
+    try {
+        const response = await fetch(SHEET_CSV_URL + '&cb=' + Date.now());
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const csvText = await response.text();
+        products = parseYourCSV(csvText);
+        console.log(`Loaded ${products.length} products from sheet`);
+    } catch (error) {
+        console.error('Sheet fetch error:', error);
     }
+}
 
-    function handleNavScroll() {
-        const nav = document.getElementById('navbar');
-        if (window.scrollY > 60) nav.classList.add('scrolled');
-        else nav.classList.remove('scrolled');
-    }
-
-    // ===== VIEW NAVIGATION =====
-    function showView(viewId) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        const navLink = document.querySelector(`.nav-link[data-view="${viewId}"]`);
-        if (navLink) navLink.classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function setupNavLinks() {
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                showView(link.dataset.view);
-            });
-        });
-        document.getElementById('cartIcon').addEventListener('click', () => {
-            showView('cart');
-        });
-    }
-
-    // ===== GOOGLE SHEETS INTEGRATION =====
-    async function loadProductsFromSheet() {
-        try {
-            const response = await fetch(SHEET_CSV_URL + '&cb=' + Date.now());
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const csvText = await response.text();
-            products = parseYourCSV(csvText);
-        } catch (error) {
-            console.error('❌ Connection Error:', error);
-        }
-    }
-
-    function parseYourCSV(csv) {
-        const lines = csv.split(/\r?\n/).filter(line => line.trim());
-        if (lines.length < 2) return [];
-        
-        const result = [];
-        for (let i = 1; i < lines.length; i++) {
-            const values = parseCSVLine(lines[i]);
-            if (values.length < 5) continue; 
-            
-            const rawPrice = values[3];
-            const product = {
-                id: values[0] || i,
-                name: formatProductName(values[1] || 'Untitled Item'),
-                category: normalizeCategory(values[2] || 'other'),
-                price: parseNairaPrice(rawPrice),
-                quantity: parseInt(values[4]) || 0,
-                image: values[5] || '',
-                colors: parseColors(values[6] || 'gold'),
-                badge: determineBadge(rawPrice)
-            };
-            
-            if (product.name && product.price > 0) result.push(product);
-        }
-        return result;
-    }
-
-    function parseCSVLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
-                current = '';
-            } else current += char;
-        }
-        result.push(current.trim());
-        return result.map(v => v.replace(/^"|"$/g, '').trim());
-    }
-
-    function formatProductName(name) {
-        return name.replace(/_/g, ' ').replace(/\s+/g, ' ').split(' ').filter(word => word)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ').replace(/\s\d+$/, '');
-    }
-
-    function normalizeCategory(cat) {
-        const c = cat.toLowerCase().trim();
-        if (c.includes('necklace')) return 'necklace';
-        if (c.includes('bracelet')) return 'bracelet';
-        if (c.includes('ring')) return 'ring';
-        if (c.includes('earring')) return 'earrings';
-        if (c.includes('watch')) return 'wristwatch';
-        if (c.includes('set')) return 'sets'; 
-        return 'other';
-    }
-
-    function parseNairaPrice(priceStr) {
-        if (!priceStr) return 0;
-        const cleaned = priceStr.toString().replace(/[^0-9,.]/g, '').replace(/,/g, '');
-        return parseFloat(cleaned) || 0;
-    }
-
-    function parseColors(colorStr) {
-        if (!colorStr || colorStr.toLowerCase() === 'n/a' || colorStr.toLowerCase() === 'null') return [];
-        return colorStr.split(/[;,]/).map(c => c.trim().toLowerCase()).filter(c => c && c !== 'n/a' && c !== 'null');
-    }
-
-    function determineBadge(priceStr) {
-        const price = parseNairaPrice(priceStr);
-        if (price >= 25000) return 'Premium';
-        if (price <= 8000) return 'Affordable';
-        return null;
-    }
-
-    function loadFallbackProducts() {
-        products = [
-            { id: 1, name: "Gold Layered Necklace", category: "necklace", price: 8500, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80", colors: ['gold', 'silver'], badge: 'Popular' },
-            { id: 2, name: "Crystal Stud Earrings", category: "earrings", price: 5500, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80", colors: ['clear', 'pink', 'blue'], badge: 'New' }
-        ];
-    }
-
-    // ===== RENDER PRODUCTS =====
-    function renderFeatured() {
-        const grid = document.getElementById('featuredGrid');
-        const featured = products.slice(0, 4);
-        if (featured.length === 0) {
-            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 2rem;">Loading beautiful pieces...</p>';
-            return;
-        }
-        grid.innerHTML = featured.map((p, i) => createProductCard(p, i, true)).join('');
-    }
-
-    function renderProducts(filter = 'all') {
-        const grid = document.getElementById('productsGrid');
-        const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
-        if (filtered.length === 0) {
-            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 3rem;">No items found in this category.</p>';
-            return;
-        }
-        grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
-        
-        document.querySelectorAll('.color-option').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.parentElement.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-                this.style.transform = 'scale(1.25)';
-                setTimeout(() => this.style.transform = '', 150);
-            });
-        });
-    }
-
-    function createProductCard(product, index, isFeatured = false) {
-        const hasColors = product.colors && product.colors.length > 0;
-        const colorOptions = hasColors ? product.colors.map((c, i) => 
-            `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
-        ).join('') : ''; 
-        
-        const delay = isFeatured ? index * 0.12 : index * 0.07;
-        
-        return `
-            <div class="product-card" style="animation-delay: ${delay}s">
-                ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
-                <button class="product-wishlist" onclick="toggleWishlist(this)" title="Add to wishlist">
-                    <i class="far fa-heart"></i>
-                </button>
-                <div class="product-image-wrapper">
-                    <img src="${cleanImageUrl(product.image)}" 
-                         alt="${product.name}" 
-                         class="product-image"
-                         onerror="this.src='hero-placeholder.jpg'">
-                </div>
-                <div class="product-info">
-                    <div class="product-category">${product.category}</div>
-                    <h3 class="product-name">${product.name}</h3>
-                    <div class="product-price">₦${parseInt(product.price).toLocaleString('en-NG')}</div>
-                    ${hasColors ? `
-                        <div class="color-selector">
-                            ${colorOptions}
-                            <span class="color-label">Color</span>
-                        </div>
-                    ` : ''}
-                    <button class="add-to-cart" onclick="addToCart('${product.id}', this)">
-                        <i class="fas fa-shopping-bag"></i> Add to Cart
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    function getColorHex(color) {
-        const colorMap = {
-            'gold': '#D4AF37', 'silver': '#C0C0C0', 'rose-gold': '#B76E79',
-            'black': '#1a1a1a', 'white': '#f5f5f5', 'clear': '#e8e8e8',
-            'pink': '#ffb6c1', 'blue': '#87ceeb', 'green': '#90ee90',
-            'red': '#ff6b6b', 'purple': '#9b59b6', 'brown': '#8b6f47'
+function parseYourCSV(csv) {
+    const lines = csv.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+    const result = [];
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length < 5) continue;
+        const product = {
+            id: values[0] || i,
+            name: formatProductName(values[1] || 'Untitled Item'),
+            category: normalizeCategory(values[2] || 'other'),
+            price: parseNairaPrice(values[3]),
+            quantity: parseInt(values[4]) || 0,
+            image: values[5] || '',
+            colors: parseColors(values[6] || 'gold'),
+            badge: determineBadge(values[3])
         };
-        return colorMap[color] || '#888';
+        if (product.name && product.price > 0) result.push(product);
     }
+    return result;
+}
 
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let char of line) {
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else current += char;
+    }
+    result.push(current.trim());
+    return result.map(v => v.replace(/^"|"$/g, '').trim());
+}
+
+function formatProductName(name) {
+    return name.replace(/_/g, ' ').replace(/\s+/g, ' ').split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ').replace(/\s\d+$/, '');
+}
+
+function normalizeCategory(cat) {
+    const c = cat.toLowerCase();
+    if (c.includes('necklace')) return 'necklace';
+    if (c.includes('bracelet')) return 'bracelet';
+    if (c.includes('ring')) return 'ring';
+    if (c.includes('earring')) return 'earrings';
+    if (c.includes('set')) return 'sets';
+    return 'other';
+}
+
+function parseNairaPrice(str) {
+    if (!str) return 0;
+    const cleaned = str.toString().replace(/[^0-9,.]/g, '').replace(/,/g, '');
+    return parseFloat(cleaned) || 0;
+}
+
+function parseColors(str) {
+    if (!str || str.toLowerCase() === 'n/a' || str.toLowerCase() === 'null') return [];
+    return str.split(/[;,]/).map(c => c.trim().toLowerCase()).filter(c => c && c !== 'n/a' && c !== 'null');
+}
+
+function determineBadge(priceStr) {
+    const price = parseNairaPrice(priceStr);
+    if (price >= 25000) return 'Premium';
+    if (price <= 8000) return 'Affordable';
+    return null;
+}
+
+function loadFallbackProducts() {
+    products = [
+        { id: 1, name: "Gold Layered Necklace", category: "necklace", price: 8500, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80", colors: ['gold', 'silver'], badge: 'Popular' },
+        { id: 2, name: "Crystal Stud Earrings", category: "earrings", price: 5500, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80", colors: ['clear', 'pink', 'blue'], badge: 'New' }
+    ];
+}
+
+// ===== RENDER PRODUCTS =====
+function renderFeatured() {
+    const grid = document.getElementById('featuredGrid');
+    const featured = products.slice(0, 4);
+    if (!featured.length) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:2rem;">Loading pieces...</p>';
+        return;
+    }
+    grid.innerHTML = featured.map((p, i) => createProductCard(p, i, true)).join('');
+}
+
+function renderProducts(filter = 'all') {
+    const grid = document.getElementById('productsGrid');
+    const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
+    if (!filtered.length) {
+        grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:3rem;">No items in this category.</p>';
+        return;
+    }
+    grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
+    document.querySelectorAll('.color-option').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            renderProducts(this.dataset.filter);
+            this.parentElement.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
         });
     });
+}
 
-    // ===== CART FUNCTIONS =====
-    function addToCart(productId, btn) {
-        const product = products.find(p => String(p.id) === String(productId));
-        if (!product) return;
-        
-        const card = btn.closest('.product-card');
-        const selectedColor = card?.querySelector('.color-option.selected')?.dataset.color || 'Gold';
-        
-        const existing = cart.find(item => String(item.id) === String(productId) && item.color === selectedColor);
-        
-        if (existing) {
-            existing.quantity++;
-        } else {
-            cart.push({ 
-                ...product, 
-                quantity: 1, 
-                color: selectedColor, 
-                cartId: `${productId}-${selectedColor}` 
-            });
-        }
-        
-        localStorage.setItem('abike_cart', JSON.stringify(cart));
-        updateCartDisplay();
-        showToast(`${product.name} added to bag!`);
-        
-        // Button animation
-        const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Added!';
-        btn.classList.add('added');
-        setTimeout(() => {
-            btn.innerHTML = originalHTML;
-            btn.classList.remove('added');
-        }, 1300);
-    }
-
-    function updateCartDisplay() {
-        const cartIcon = document.querySelector('.cart-count');
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        cartIcon.setAttribute('data-count', totalItems);
-        
-        // Also update cart page if it's active
-        if (document.getElementById('cart').classList.contains('active')) {
-            renderCartPage();
-        }
-    }
-
-    function renderCartPage() {
-        const container = document.getElementById('cartItemsContainer');
-        const summary = document.getElementById('cartSummary');
-        const empty = document.getElementById('emptyCart');
-        
-        if (!container) return;
-
-        if (cart.length === 0) {
-            container.innerHTML = '';
-            if (summary) summary.style.display = 'none';
-            if (empty) empty.style.display = 'block';
-            return;
-        }
-        
-        if (empty) empty.style.display = 'none';
-        if (summary) summary.style.display = 'block';
-        
-        container.innerHTML = cart.map((item, index) => `
-            <div class="cart-item" style="animation-delay: ${index * 0.08}s">
-                <img src="${cleanImageUrl(item.image)}" alt="${item.name}" class="cart-item-image" onerror="this.src='hero-placeholder.jpg'">
-                <div class="cart-item-details">
-                    <h4 class="cart-item-name">${item.name}</h4>
-                    <div class="cart-item-price">₦${parseInt(item.price).toLocaleString('en-NG')}</div>
-                    ${item.color ? `<div class="cart-item-color">Color: <strong>${item.color}</strong></div>` : ''}
-                    <div class="cart-item-quantity">
-                        <button class="qty-btn" onclick="updateQty('${item.cartId}', -1)">−</button>
-                        <span class="qty-number">${item.quantity}</span>
-                        <button class="qty-btn" onclick="updateQty('${item.cartId}', 1)">+</button>
-                    </div>
-                </div>
-                <button class="remove-item" onclick="removeFromCart('${item.cartId}')"><i class="fas fa-times"></i></button>
+function createProductCard(product, index, isFeatured = false) {
+    const hasColors = product.colors && product.colors.length > 0;
+    const colorOptions = hasColors ? product.colors.map((c, i) => 
+        `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
+    ).join('') : '';
+    const delay = isFeatured ? index * 0.12 : index * 0.07;
+    return `
+        <div class="product-card" style="animation-delay: ${delay}s">
+            ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+            <button class="product-wishlist" onclick="toggleWishlist(this)">
+                <i class="far fa-heart"></i>
+            </button>
+            <div class="product-image-wrapper">
+                <img src="${cleanImageUrl(product.image)}" alt="${product.name}" class="product-image" onerror="this.src='https://via.placeholder.com/400x400/D4AF37/000000?text=ABIKE'">
             </div>
-        `).join('');
-        
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
-        const total = subtotal - discount;
-        
-        document.getElementById('cartSubtotal').textContent = `₦${Math.round(subtotal).toLocaleString('en-NG')}`;
-        document.getElementById('cartTotal').textContent = `₦${Math.round(total).toLocaleString('en-NG')}`;
-        
-        const discountRow = document.getElementById('discountRow');
-        const discountNotice = document.getElementById('discountNotice');
-        if (discount > 0) {
-            document.getElementById('discountAmount').textContent = `₦${Math.round(discount).toLocaleString('en-NG')}`;
-            discountRow.style.display = 'flex';
-            discountNotice.style.display = 'flex';
-        } else {
-            discountRow.style.display = 'none';
-            discountNotice.style.display = 'none';
-        }
-    }
+            <div class="product-info">
+                <div class="product-category">${product.category}</div>
+                <h3 class="product-name">${product.name}</h3>
+                <div class="product-price">₦${parseInt(product.price).toLocaleString('en-NG')}</div>
+                ${hasColors ? `<div class="color-selector">${colorOptions}<span class="color-label">Color</span></div>` : ''}
+                <button class="add-to-cart" onclick="addToCart('${product.id}', this)">
+                    <i class="fas fa-shopping-bag"></i> Add to Cart
+                </button>
+            </div>
+        </div>
+    `;
+}
 
-    function updateQty(cartId, change) {
-        const item = cart.find(i => i.cartId === cartId);
-        if (item) {
-            item.quantity += change;
-            if (item.quantity <= 0) removeFromCart(cartId);
-            else { renderCartPage(); updateCartDisplay(); }
-        }
-    }
+function getColorHex(color) {
+    const map = {
+        'gold': '#D4AF37', 'silver': '#C0C0C0', 'rose-gold': '#B76E79',
+        'black': '#1a1a1a', 'white': '#f5f5f5', 'clear': '#e8e8e8',
+        'pink': '#ffb6c1', 'blue': '#87ceeb', 'green': '#90ee90'
+    };
+    return map[color] || '#888';
+}
 
-    function removeFromCart(cartId) {
-        const itemIndex = cart.findIndex(i => i.cartId === cartId);
-        if (itemIndex > -1) {
-            const itemName = cart[itemIndex].name;
-            cart.splice(itemIndex, 1);
-            renderCartPage(); updateCartDisplay();
-            showToast(`${itemName} removed from cart`);
-        }
-    }
-
-    function toggleWishlist(btn) {
-        btn.classList.toggle('active');
-        const icon = btn.querySelector('i');
-        const isAdded = btn.classList.contains('active');
-        icon.className = isAdded ? 'fas fa-heart' : 'far fa-heart';
-        showToast(isAdded ? 'Added to wishlist ❤️' : 'Removed from wishlist');
-    }
-
-    function whatsappCheckout() {
-        if (cart.length === 0) return;
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
-        const total = subtotal - discount;
-        
-        let message = `*🛍️ NEW ORDER - ABIKE Jewelry*%0A%0A*Items:*%0A`;
-        cart.forEach(item => {
-            const color = item.color ? ` *(${item.color.replace('-', ' ')})*` : '';
-            message += `• ${item.name}${color} × ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString('en-NG')}%0A`;
-        });
-        
-        message += `%0A*Subtotal:* ₦${Math.round(subtotal).toLocaleString('en-NG')}%0A`;
-        if (discount > 0) message += `*Discount (ABIKE10):* -₦${Math.round(discount).toLocaleString('en-NG')}%0A`;
-        message += `*Delivery Fee:* To be calculated%0A*TOTAL:* *₦${Math.round(total).toLocaleString('en-NG')}*%0A`;
-        
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-    }
-
-    // ===== UTILITIES =====
-    function showToast(message) {
-        const toast = document.getElementById('toast');
-        document.getElementById('toastMessage').textContent = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3500);
-    }
-
-    document.getElementById('toast').addEventListener('click', function() {
-        this.classList.remove('show');
+// ===== FILTER BUTTONS =====
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        renderProducts(this.dataset.filter);
     });
+});
 
-    // ===== REFUND MODAL FUNCTIONS =====
-    function openRefundModal() {
-        const modal = document.getElementById('refundModal');
-        if (modal) modal.classList.add('active');
+// ===== CART FUNCTIONS =====
+function addToCart(productId, btn) {
+    const product = products.find(p => String(p.id) === String(productId));
+    if (!product) return;
+    const card = btn.closest('.product-card');
+    const selectedColor = card?.querySelector('.color-option.selected')?.dataset.color || 'Gold';
+    const existing = cart.find(item => String(item.id) === String(productId) && item.color === selectedColor);
+    if (existing) {
+        existing.quantity++;
+    } else {
+        cart.push({ ...product, quantity: 1, color: selectedColor, cartId: `${productId}-${selectedColor}` });
     }
+    localStorage.setItem('abike_cart', JSON.stringify(cart));
+    updateCartDisplay();
+    showToast(`${product.name} added to bag!`);
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Added!';
+    btn.classList.add('added');
+    setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('added');
+    }, 1300);
+}
+
+function renderCartPage() {
+    const container = document.getElementById('cartItemsContainer');
+    const summary = document.getElementById('cartSummary');
+    const empty = document.getElementById('emptyCart');
+    if (!container) return;
+    if (cart.length === 0) {
+        container.innerHTML = '';
+        if (summary) summary.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+    summary.style.display = 'block';
+    container.innerHTML = cart.map((item, idx) => `
+        <div class="cart-item" style="animation-delay: ${idx * 0.08}s">
+            <img src="${cleanImageUrl(item.image)}" class="cart-item-image" onerror="this.src='https://via.placeholder.com/100x100/D4AF37/000000?text=ABIKE'">
+            <div class="cart-item-details">
+                <h4 class="cart-item-name">${item.name}</h4>
+                <div class="cart-item-price">₦${parseInt(item.price).toLocaleString('en-NG')}</div>
+                ${item.color ? `<div class="cart-item-color">Color: <strong>${item.color}</strong></div>` : ''}
+                <div class="cart-item-quantity">
+                    <button class="qty-btn" onclick="updateQty('${item.cartId}', -1)">−</button>
+                    <span>${item.quantity}</span>
+                    <button class="qty-btn" onclick="updateQty('${item.cartId}', 1)">+</button>
+                </div>
+            </div>
+            <button class="remove-item" onclick="removeFromCart('${item.cartId}')"><i class="fas fa-times"></i></button>
+        </div>
+    `).join('');
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
+    const total = subtotal - discount;
+    document.getElementById('cartSubtotal').textContent = `₦${Math.round(subtotal).toLocaleString('en-NG')}`;
+    document.getElementById('cartTotal').textContent = `₦${Math.round(total).toLocaleString('en-NG')}`;
+    const discountRow = document.getElementById('discountRow');
+    const discountNotice = document.getElementById('discountNotice');
+    if (discount > 0) {
+        document.getElementById('discountAmount').textContent = `₦${Math.round(discount).toLocaleString('en-NG')}`;
+        discountRow.style.display = 'flex';
+        discountNotice.style.display = 'flex';
+    } else {
+        discountRow.style.display = 'none';
+        discountNotice.style.display = 'none';
+    }
+}
+
+function updateQty(cartId, change) {
+    const item = cart.find(i => i.cartId === cartId);
+    if (item) {
+        item.quantity += change;
+        if (item.quantity <= 0) removeFromCart(cartId);
+        else { renderCartPage(); updateCartDisplay(); }
+    }
+}
+
+function removeFromCart(cartId) {
+    const idx = cart.findIndex(i => i.cartId === cartId);
+    if (idx > -1) {
+        const name = cart[idx].name;
+        cart.splice(idx, 1);
+        localStorage.setItem('abike_cart', JSON.stringify(cart));
+        renderCartPage();
+        updateCartDisplay();
+        showToast(`${name} removed`);
+    }
+}
+
+function toggleWishlist(btn) {
+    btn.classList.toggle('active');
+    const icon = btn.querySelector('i');
+    icon.className = btn.classList.contains('active') ? 'fas fa-heart' : 'far fa-heart';
+    showToast(btn.classList.contains('active') ? 'Added to wishlist' : 'Removed from wishlist');
+}
+
+function whatsappCheckout() {
+    if (!cart.length) return;
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
+    const total = subtotal - discount;
+    let msg = `*🛍️ NEW ORDER - ABIKE Jewelry*%0A%0A*Items:*%0A`;
+    cart.forEach(item => {
+        const color = item.color ? ` *(${item.color})*` : '';
+        msg += `• ${item.name}${color} × ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString('en-NG')}%0A`;
+    });
+    msg += `%0A*Subtotal:* ₦${Math.round(subtotal).toLocaleString('en-NG')}%0A`;
+    if (discount > 0) msg += `*Discount:* -₦${Math.round(discount).toLocaleString('en-NG')}%0A`;
+    msg += `*Delivery:* To be calculated%0A*TOTAL:* *₦${Math.round(total).toLocaleString('en-NG')}*`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
+}
+
+// ===== SEARCH =====
+const searchIcon = document.getElementById('searchIcon');
+const searchBar = document.getElementById('searchBar');
+const searchInput = document.getElementById('searchInput');
+searchIcon.addEventListener('click', () => {
+    searchBar.style.display = searchBar.style.display === 'none' ? 'block' : 'none';
+    if (searchBar.style.display === 'block') searchInput.focus();
+});
+searchInput.addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    showView('collection');
+    if (!query) { renderProducts(); return; }
+    const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
+    const grid = document.getElementById('productsGrid');
+    grid.innerHTML = filtered.length ? filtered.map((p, i) => createProductCard(p, i)).join('') 
+        : '<p style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:3rem;">No results found.</p>';
+});
+
+// ===== REFUND MODAL (dummy) =====
+function openRefundModal() {
+    alert('Refund Policy: Items can be returned within 7 days in original condition.');
+}
 
     function closeRefundModal() {
         const modal = document.getElementById('refundModal');
