@@ -169,7 +169,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: brightness(0.4) contrast(1.1); /* Makes the video darker so gold text pops */
+    filter: brightness(0.8) contrast(1.0) saturate(1.2);
+    opacity: 0.7; /* This helps the background stay behind the text */
 }
 .hero-content {
     position: relative;
@@ -1021,76 +1022,57 @@
         const WHATSAPP_NUMBER = '2348168764365';
         const DISCOUNT_THRESHOLD = 50000;
         const DISCOUNT_PERCENT = 0.10;
-        // YOUR EXACT GOOGLE SHEET CSV URL
-      const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
-       function cleanImageUrl(url) {
-    if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
-    let clean = url.replace(/^["']|["']$/g, '').trim();
-    if (clean.includes('drive.google.com')) {
-        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
-        if (fileIdMatch && fileIdMatch[1]) {
-            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
-        }
-    }
-    return clean;
-}
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSVBHv0TmG-hBQn3nfo1HlE0WEf05lobiaWai_-nmIaqH9MVjTgI4cbLifvemK_wIlyUyXXYuHEGBLp/pub?output=csv';
+        
         // ===== STATE =====
         let products = [];
         let cart = [];
 
-        // PASTE THE CLEANER HERE
-function cleanImageUrl(url) {
-    if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
-    
-    let clean = url.replace(/^["']|["']$/g, '').trim();
-    
-    // If it's already a thumbnail link, return it
-    if (clean.includes('drive.google.com/thumbnail')) return clean;
-
-    // Convert standard Drive links to direct image links
-    if (clean.includes('drive.google.com')) {
-        const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
-        if (fileIdMatch && fileIdMatch[1]) {
-            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        // ===== IMAGE CLEANER (Fixes Google Drive Links) =====
+        function cleanImageUrl(url) {
+            if (!url || url === '' || url.toLowerCase() === 'n/a') return 'hero-placeholder.jpg';
+            let clean = url.replace(/^["']|["']$/g, '').trim();
+            if (clean.includes('drive.google.com/thumbnail')) return clean;
+            if (clean.includes('drive.google.com')) {
+                const fileIdMatch = clean.match(/\/file\/d\/([^\/]+)/) || clean.match(/id=([^\&]+)/);
+                if (fileIdMatch && fileIdMatch[1]) {
+                    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+                }
+            }
+            return clean;
         }
-    }
-    return clean;
-}
-        
+
         // ===== INIT =====
         window.addEventListener('load', async () => {
-            // Create sparkle particles for hero
             createSparkles();
             
-            // Hide loader with smooth transition
+            // Hide loader smoothly
             setTimeout(() => {
-                document.getElementById('loader').classList.add('hidden');
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
             }, 1500);
             
-            // Load products from YOUR Google Sheet
             await loadProductsFromSheet();
             
-            // Fallback if sheet fails
             if (products.length === 0) {
                 console.log('Using fallback products');
                 loadFallbackProducts();
             }
             
-            // Render everything
             renderFeatured();
             renderProducts();
             updateCartDisplay();
-            
-            // Setup navigation
             setupNavLinks();
-            
-            // Navbar scroll effect
             window.addEventListener('scroll', handleNavScroll);
         });
 
         // ===== ANIMATIONS =====
         function createSparkles() {
             const container = document.getElementById('sparkles');
+            if(!container) return;
             for (let i = 0; i < 30; i++) {
                 const sparkle = document.createElement('div');
                 sparkle.className = 'sparkle';
@@ -1105,27 +1087,17 @@ function cleanImageUrl(url) {
 
         function handleNavScroll() {
             const nav = document.getElementById('navbar');
-            if (window.scrollY > 60) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
-            }
+            if (window.scrollY > 60) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
         }
 
         // ===== VIEW NAVIGATION =====
         function showView(viewId) {
-            // Hide all views
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            
-            // Show requested view
             document.getElementById(viewId).classList.add('active');
-            
-            // Update nav active state
             const navLink = document.querySelector(`.nav-link[data-view="${viewId}"]`);
             if (navLink) navLink.classList.add('active');
-            
-            // Scroll to top smoothly
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1136,162 +1108,92 @@ function cleanImageUrl(url) {
                     showView(link.dataset.view);
                 });
             });
-            
-            // Cart icon click
             document.getElementById('cartIcon').addEventListener('click', () => {
                 showView('cart');
             });
         }
 
-        // ===== GOOGLE SHEETS INTEGRATION - FIXED FOR YOUR CSV =====
+        // ===== GOOGLE SHEETS INTEGRATION =====
         async function loadProductsFromSheet() {
-    try {
-        console.log('Attempting to fetch inventory...');
-        // The ?cb=Date.now() forces Google to send the most recent data
-        const response = await fetch(SHEET_CSV_URL + '&cb=' + Date.now());
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            try {
+                const response = await fetch(SHEET_CSV_URL + '&cb=' + Date.now());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const csvText = await response.text();
+                products = parseYourCSV(csvText);
+            } catch (error) {
+                console.error('❌ Connection Error:', error);
+            }
         }
-        
-        const csvText = await response.text();
-        console.log('Data received from Google Sheets');
-        
-        products = parseYourCSV(csvText);
-        
-        if (products.length > 0) {
-            console.log(`✅ ${products.length} Jewelry items loaded!`);
-            renderProducts(); // This draws them on the screen
-        } else {
-            console.warn('Sheet connected but no products found. Using fallback.');
-            loadFallbackProducts();
-        }
-        
-    } catch (error) {
-        console.error('❌ Connection Error:', error);
-        loadFallbackProducts();
-    }
-}
-        // Parse YOUR specific CSV format: ID, NAME, CATEGORY, PRICE, QUANTITY, IMAGE URL, COLOR
-function parseYourCSV(csv) {
-  
-  // FIX 1: Split by both \r\n and \n to prevent hidden characters
-    const lines = csv.split(/\r?\n/).filter(line => line.trim());
-    
-    if (lines.length < 2) {
-        console.log('No data rows found in CSV');
-        return [];
-    }
-    
-    const result = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-        const values = parseCSVLine(lines[i]);
-        
-        // Ensure we have enough columns to work with
-        if (values.length < 5) continue; 
-        
-        const rawPrice = values[3];
-        const product = {
-            id: values[0] || i,
-            name: formatProductName(values[1] || 'Untitled Item'),
-            category: normalizeCategory(values[2] || 'other'),
-            price: parseNairaPrice(rawPrice),
-            quantity: parseInt(values[4]) || 0,
-        }
-    }
-    
-// FIX 3: New helper to ensure Google Drive thumbnails/files actually show up
-function convertToDirectLink(url) {
-    if (!url) return '';
-    let clean = url.replace(/^["']|["']$/g, '').trim();
 
-    // If it's a standard sharing link, convert it to a direct view link
-    if (clean.includes('drive.google.com')) {
-        let fileId = '';
-        if (clean.includes('id=')) {
-            fileId = clean.split('id=')[1].split('&')[0];
-        } else if (clean.includes('/file/d/')) {
-            fileId = clean.split('/file/d/')[1].split('/')[0];
+        function parseYourCSV(csv) {
+            const lines = csv.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length < 2) return [];
+            
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length < 5) continue; 
+                
+                const rawPrice = values[3];
+                const product = {
+                    id: values[0] || i,
+                    name: formatProductName(values[1] || 'Untitled Item'),
+                    category: normalizeCategory(values[2] || 'other'),
+                    price: parseNairaPrice(rawPrice),
+                    quantity: parseInt(values[4]) || 0,
+                    image: values[5] || '',
+                    colors: parseColors(values[6] || 'gold'),
+                    badge: determineBadge(rawPrice)
+                };
+                
+                if (product.name && product.price > 0) result.push(product);
+            }
+            return result;
         }
-        
-        if (fileId) {
-            // Using the 'uc' endpoint is often more reliable than 'thumbnail' for websites
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
-        }
-    }
-    return clean;
-}
-        // Parse CSV line handling quoted values with commas
+
         function parseCSVLine(line) {
             const result = [];
             let current = '';
             let inQuotes = false;
-            
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
-                
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) {
                     result.push(current.trim());
                     current = '';
-                } else {
-                    current += char;
-                }
+                } else current += char;
             }
             result.push(current.trim());
-            
-            // Clean quotes from values
             return result.map(v => v.replace(/^"|"$/g, '').trim());
         }
 
-        // Format product name: "gold_necklace_1" → "Gold Necklace"
         function formatProductName(name) {
-            return name
-                .replace(/_/g, ' ')
-                .replace(/\s+/g, ' ')
-                .split(' ')
-                .filter(word => word)
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                .join(' ')
-                .replace(/\s\d+$/, ''); // Remove trailing numbers like " 1"
+            return name.replace(/_/g, ' ').replace(/\s+/g, ' ').split(' ').filter(word => word)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ').replace(/\s\d+$/, '');
         }
 
-        // Normalize category to match filter buttons
         function normalizeCategory(cat) {
-    const c = cat.toLowerCase().trim();
-    if (c.includes('necklace')) return 'necklace';
-    if (c.includes('bracelet')) return 'bracelet';
-    if (c.includes('ring')) return 'ring';
-    if (c.includes('earring')) return 'earrings';
-    if (c.includes('watch')) return 'wristwatch';
-    // Matches "sets" column from your sheet
-    if (c.includes('set')) return 'sets'; 
-    return 'other';
+            const c = cat.toLowerCase().trim();
+            if (c.includes('necklace')) return 'necklace';
+            if (c.includes('bracelet')) return 'bracelet';
+            if (c.includes('ring')) return 'ring';
+            if (c.includes('earring')) return 'earrings';
+            if (c.includes('watch')) return 'wristwatch';
+            if (c.includes('set')) return 'sets'; 
+            return 'other';
         }
 
-        // Parse Naira price: "N5,000" or "5000" → 5000
         function parseNairaPrice(priceStr) {
             if (!priceStr) return 0;
-            const cleaned = priceStr.toString()
-                .replace(/[^0-9,.]/g, '') // Remove N, ₦, spaces, etc.
-                .replace(/,/g, ''); // Remove commas
+            const cleaned = priceStr.toString().replace(/[^0-9,.]/g, '').replace(/,/g, '');
             return parseFloat(cleaned) || 0;
         }
-    
    
-        // Parse colors: "gold; silver" → ["gold", "silver"]
         function parseColors(colorStr) {
-            if (!colorStr || colorStr.toLowerCase() === 'n/a' || colorStr.toLowerCase() === 'null') {
-                return [];
-            }
-            return colorStr.split(/[;,]/)
-                .map(c => c.trim().toLowerCase())
-                .filter(c => c && c !== 'n/a' && c !== 'null');
+            if (!colorStr || colorStr.toLowerCase() === 'n/a' || colorStr.toLowerCase() === 'null') return [];
+            return colorStr.split(/[;,]/).map(c => c.trim().toLowerCase()).filter(c => c && c !== 'n/a' && c !== 'null');
         }
 
-        // Auto-badge based on price
         function determineBadge(priceStr) {
             const price = parseNairaPrice(priceStr);
             if (price >= 25000) return 'Premium';
@@ -1299,131 +1201,79 @@ function convertToDirectLink(url) {
             return null;
         }
 
-        // Fallback products with guaranteed working images
         function loadFallbackProducts() {
             products = [
-                { 
-                    id: 1, 
-                    name: "Gold Layered Necklace", 
-                    category: "necklace", 
-                    price: 8500, 
-                    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80", 
-                    colors: ['gold', 'silver'], 
-                    badge: 'Popular' 
-                },
-                { 
-                    id: 2, 
-                    name: "Crystal Stud Earrings", 
-                    category: "earrings", 
-                    price: 5500, 
-                    image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80", 
-                    colors: ['clear', 'pink', 'blue'], 
-                    badge: 'New' 
-                },
-                { 
-                    id: 3, 
-                    name: "Minimalist Ring Set", 
-                    category: "ring", 
-                    price: 6000, 
-                    image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&auto=format&fit=crop&q=80", 
-                    colors: ['gold', 'rose-gold'], 
-                    badge: null 
-                },
-                { 
-                    id: 4, 
-                    name: "Beaded Charm Bracelet", 
-                    category: "bracelet", 
-                    price: 7200, 
-                    image: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&auto=format&fit=crop&q=80", 
-                    colors: ['gold', 'silver', 'black'], 
-                    badge: 'Affordable' 
-                },
-                { 
-                    id: 5, 
-                    name: "Bridal Jewelry Set", 
-                    category: "sets", 
-                    price: 15000, 
-                    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=600&auto=format&fit=crop&q=80", 
-                    colors: ['gold', 'silver'], 
-                    badge: 'Premium' 
-                }
+                { id: 1, name: "Gold Layered Necklace", category: "necklace", price: 8500, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=600&auto=format&fit=crop&q=80", colors: ['gold', 'silver'], badge: 'Popular' },
+                { id: 2, name: "Crystal Stud Earrings", category: "earrings", price: 5500, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80", colors: ['clear', 'pink', 'blue'], badge: 'New' }
             ];
-            console.log('Fallback products loaded:', products.length);
         }
 
         // ===== RENDER PRODUCTS =====
         function renderFeatured() {
             const grid = document.getElementById('featuredGrid');
             const featured = products.slice(0, 4);
-            
             if (featured.length === 0) {
                 grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 2rem;">Loading beautiful pieces...</p>';
                 return;
             }
-            
             grid.innerHTML = featured.map((p, i) => createProductCard(p, i, true)).join('');
         }
 
         function renderProducts(filter = 'all') {
             const grid = document.getElementById('productsGrid');
             const filtered = filter === 'all' ? products : products.filter(p => p.category === filter);
-            
             if (filtered.length === 0) {
-                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 3rem; font-size: 1.1rem;">No items found in this category. Try "All" or check back soon for new arrivals! ✨</p>';
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 3rem;">No items found in this category.</p>';
                 return;
             }
-            
             grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
             
-            // Setup color selectors with smooth interaction
             document.querySelectorAll('.color-option').forEach(btn => {
                 btn.addEventListener('click', function() {
                     this.parentElement.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
                     this.classList.add('selected');
-                    
-                    // Subtle animation feedback
                     this.style.transform = 'scale(1.25)';
                     setTimeout(() => this.style.transform = '', 150);
                 });
             });
         }
 
-       function createProductCard(product, index, isFeatured = false) {
-    const hasColors = product.colors && product.colors.length > 0;
-    const colorOptions = hasColors ? product.colors.map((c, i) => 
-        `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
-    ).join('') :
-    
-    // Staggered animation delay for beautiful entrance
-    const delay = isFeatured ? index * 0.12 : index * 0.07;
-    
-    return `
-        <div class="product-card" style="animation-delay: ${delay}s">
-            ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
-            <button class="product-wishlist" onclick="toggleWishlist(this)" title="Add to wishlist">
-                <i class="far fa-heart"></i>
-            </button>
-            <div class="product-image-wrapper">
-                <img src="${cleanImageUrl(product.image)}" 
-                     alt="${product.name}" 
-                     class="product-image"
-                     onerror="this.src='hero-placeholder.jpg'">
-            </div>
-            <div class="product-info">
-                <div class="product-category">${product.category}</div>
-                <h3 class="product-title">${product.name}</h3>
-                <div class="product-price">₦${parseInt(product.price).toLocaleString('en-NG')}</div>
-                ${hasColors ? `
-                    <div class="color-selector">
-                        ${colorOptions}
-                        <span class="color-label">Color</span>
+        function createProductCard(product, index, isFeatured = false) {
+            const hasColors = product.colors && product.colors.length > 0;
+            const colorOptions = hasColors ? product.colors.map((c, i) => 
+                `<div class="color-option ${i === 0 ? 'selected' : ''}" style="background: ${getColorHex(c)}" data-color="${c}" title="${c}"></div>`
+            ).join('') : ''; 
+            
+            const delay = isFeatured ? index * 0.12 : index * 0.07;
+            
+            return `
+                <div class="product-card" style="animation-delay: ${delay}s">
+                    ${product.badge ? `<span class="product-badge">${product.badge}</span>` : ''}
+                    <button class="product-wishlist" onclick="toggleWishlist(this)" title="Add to wishlist">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    <div class="product-image-wrapper">
+                        <img src="${cleanImageUrl(product.image)}" 
+                             alt="${product.name}" 
+                             class="product-image"
+                             onerror="this.src='hero-placeholder.jpg'">
                     </div>
-                ` : ''}
-                <button class="add-to-cart" onclick="addToCart(${product.id}, this)">
-                    <i class="fas fa-shopping-bag"></i> Add to Cart
-                </button>
-            </div>
-        </div>
+                    <div class="product-info">
+                        <div class="product-category">${product.category}</div>
+                        <h3 class="product-name">${product.name}</h3>
+                        <div class="product-price">₦${parseInt(product.price).toLocaleString('en-NG')}</div>
+                        ${hasColors ? `
+                            <div class="color-selector">
+                                ${colorOptions}
+                                <span class="color-label">Color</span>
+                            </div>
+                        ` : ''}
+                        <button class="add-to-cart" onclick="addToCart('${product.id}', this)">
+                            <i class="fas fa-shopping-bag"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
         function getColorHex(color) {
@@ -1436,7 +1286,6 @@ function convertToDirectLink(url) {
             return colorMap[color] || '#888';
         }
 
-        // Filter buttons with smooth transition
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -1447,54 +1296,36 @@ function convertToDirectLink(url) {
 
         // ===== CART FUNCTIONS =====
         function addToCart(productId, btn) {
-            const product = products.find(p => p.id === productId);
+            const product = products.find(p => String(p.id) === String(productId));
             if (!product) return;
             
-            // Get selected color
             const card = btn.closest('.product-card');
             const selectedColor = card?.querySelector('.color-option.selected')?.dataset.color || null;
+            const existing = cart.find(item => String(item.id) === String(productId) && item.color === selectedColor);
             
-            const existing = cart.find(item => item.id === productId && item.color === selectedColor);
-            if (existing) {
-                existing.quantity++;
-            } else {
-                cart.push({
-                    ...product,
-                    quantity: 1,
-                    color: selectedColor,
-                    cartId: `${productId}-${selectedColor || 'default'}`
-                });
+            if (existing) existing.quantity++;
+            else {
+                cart.push({ ...product, quantity: 1, color: selectedColor, cartId: `${productId}-${selectedColor || 'default'}` });
             }
             
             updateCartDisplay();
             showToast(`${product.name} added to cart! ✨`);
             
-            // Beautiful button feedback
             const originalHTML = btn.innerHTML;
-            const originalBg = btn.style.background;
-            const originalColor = btn.style.color;
-            
             btn.innerHTML = '<i class="fas fa-check"></i> Added!';
             btn.style.background = 'var(--gold-primary)';
             btn.style.color = 'var(--bg-dark)';
-            btn.style.transform = 'scale(0.97)';
-            
             setTimeout(() => {
                 btn.innerHTML = originalHTML;
-                btn.style.background = originalBg;
-                btn.style.color = originalColor;
-                btn.style.transform = '';
+                btn.style.background = '';
+                btn.style.color = '';
             }, 1300);
         }
 
         function updateCartDisplay() {
             const count = cart.reduce((sum, item) => sum + item.quantity, 0);
             document.querySelector('.cart-count').setAttribute('data-count', count);
-            
-            // Update cart page if visible
-            if (document.getElementById('cart').classList.contains('active')) {
-                renderCartPage();
-            }
+            if (document.getElementById('cart').classList.contains('active')) renderCartPage();
         }
 
         function renderCartPage() {
@@ -1514,10 +1345,7 @@ function convertToDirectLink(url) {
             
             container.innerHTML = cart.map((item, index) => `
                 <div class="cart-item" style="animation-delay: ${index * 0.08}s">
-                    <img src="${item.image || 'https://via.placeholder.com/100/121218/D4AF37?text=ABIKE'}" 
-                         alt="${item.name}" 
-                         class="cart-item-image"
-                         onerror="this.src='https://via.placeholder.com/100/121218/D4AF37?text=No+Image'">
+                    <img src="${cleanImageUrl(item.image)}" alt="${item.name}" class="cart-item-image" onerror="this.src='hero-placeholder.jpg'">
                     <div class="cart-item-details">
                         <h4 class="cart-item-name">${item.name}</h4>
                         <div class="cart-item-price">₦${item.price.toLocaleString('en-NG')}</div>
@@ -1528,22 +1356,17 @@ function convertToDirectLink(url) {
                             <button class="qty-btn" onclick="updateQty('${item.cartId}', 1)">+</button>
                         </div>
                     </div>
-                    <button class="remove-item" onclick="removeFromCart('${item.cartId}')" title="Remove item">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="remove-item" onclick="removeFromCart('${item.cartId}')"><i class="fas fa-times"></i></button>
                 </div>
             `).join('');
             
-            // Calculate totals
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
             const total = subtotal - discount;
             
-            // Update summary
             document.getElementById('cartSubtotal').textContent = `₦${Math.round(subtotal).toLocaleString('en-NG')}`;
             document.getElementById('cartTotal').textContent = `₦${Math.round(total).toLocaleString('en-NG')}`;
             
-            // Discount display
             const discountRow = document.getElementById('discountRow');
             const discountNotice = document.getElementById('discountNotice');
             if (discount > 0) {
@@ -1560,12 +1383,8 @@ function convertToDirectLink(url) {
             const item = cart.find(i => i.cartId === cartId);
             if (item) {
                 item.quantity += change;
-                if (item.quantity <= 0) {
-                    removeFromCart(cartId);
-                } else {
-                    renderCartPage();
-                    updateCartDisplay();
-                }
+                if (item.quantity <= 0) removeFromCart(cartId);
+                else { renderCartPage(); updateCartDisplay(); }
             }
         }
 
@@ -1574,8 +1393,7 @@ function convertToDirectLink(url) {
             if (itemIndex > -1) {
                 const itemName = cart[itemIndex].name;
                 cart.splice(itemIndex, 1);
-                renderCartPage();
-                updateCartDisplay();
+                renderCartPage(); updateCartDisplay();
                 showToast(`${itemName} removed from cart`);
             }
         }
@@ -1584,41 +1402,27 @@ function convertToDirectLink(url) {
             btn.classList.toggle('active');
             const icon = btn.querySelector('i');
             const isAdded = btn.classList.contains('active');
-            
             icon.className = isAdded ? 'fas fa-heart' : 'far fa-heart';
             showToast(isAdded ? 'Added to wishlist ❤️' : 'Removed from wishlist');
         }
 
-        // ===== WHATSAPP CHECKOUT - DELIVERY FOCUSED =====
         function whatsappCheckout() {
-            if (cart.length === 0) {
-                showToast('Your cart is empty!');
-                return;
-            }
-            
+            if (cart.length === 0) return;
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
             const total = subtotal - discount;
             
-            let message = `*🛍️ NEW ORDER - ABIKE Jewelry*%0A%0A`;
-            message += `*Items:*%0A`;
-            
+            let message = `*🛍️ NEW ORDER - ABIKE Jewelry*%0A%0A*Items:*%0A`;
             cart.forEach(item => {
                 const color = item.color ? ` *(${item.color.replace('-', ' ')})*` : '';
                 message += `• ${item.name}${color} × ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString('en-NG')}%0A`;
             });
             
             message += `%0A*Subtotal:* ₦${Math.round(subtotal).toLocaleString('en-NG')}%0A`;
-            if (discount > 0) {
-                message += `*Discount (ABIKE10):* -₦${Math.round(discount).toLocaleString('en-NG')}%0A`;
-            }
-            message += `*Delivery Fee:* To be calculated based on location%0A`;
-            message += `*TOTAL:* *₦${Math.round(total).toLocaleString('en-NG')}*%0A%0A`;
-            message += `📍 *Delivery Address:* [Please provide your delivery address]%0A`;
-            message += `%0APlease confirm availability and payment details. Thank you! ✨`;
+            if (discount > 0) message += `*Discount (ABIKE10):* -₦${Math.round(discount).toLocaleString('en-NG')}%0A`;
+            message += `*Delivery Fee:* To be calculated%0A*TOTAL:* *₦${Math.round(total).toLocaleString('en-NG')}*%0A`;
             
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-            showToast('Opening WhatsApp... Complete your order there! 💬');
         }
 
         // ===== UTILITIES =====
@@ -1626,18 +1430,14 @@ function convertToDirectLink(url) {
             const toast = document.getElementById('toast');
             document.getElementById('toastMessage').textContent = message;
             toast.classList.add('show');
-            
-            // Auto-hide after 3.5 seconds
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3500);
+            setTimeout(() => toast.classList.remove('show'), 3500);
         }
 
-        // Close toast on click
         document.getElementById('toast').addEventListener('click', function() {
             this.classList.remove('show');
         });
-           // ===== REFUND MODAL FUNCTIONS =====
+
+        // ===== REFUND MODAL FUNCTIONS =====
         function openRefundModal() {
             const modal = document.getElementById('refundModal');
             if (modal) modal.classList.add('active');
@@ -1648,7 +1448,6 @@ function convertToDirectLink(url) {
             if (modal) modal.classList.remove('active');
         }
 
-        // Close modal if user clicks outside the box
         window.addEventListener('click', function(event) {
             const modal = document.getElementById('refundModal');
             if (event.target == modal) {
@@ -1659,40 +1458,26 @@ function convertToDirectLink(url) {
         // ===== SEARCH FUNCTIONALITY =====
         document.getElementById('searchIcon').addEventListener('click', () => {
             const bar = document.getElementById('searchBar');
-            const isVisible = bar.style.display === 'block';
-            bar.style.display = isVisible ? 'none' : 'block';
-            if (!isVisible) document.getElementById('searchInput').focus();
+            bar.style.display = bar.style.display === 'block' ? 'none' : 'block';
+            if (bar.style.display === 'block') document.getElementById('searchInput').focus();
         });
 
         document.getElementById('searchInput').addEventListener('input', function() {
             const query = this.value.toLowerCase().trim();
-            if (!query) {
-                renderProducts();
-                return;
-            }
             showView('collection');
-            const filtered = products.filter(p =>
-                p.name.toLowerCase().includes(query) ||
-                p.category.toLowerCase().includes(query)
-            );
+            if (!query) { renderProducts(); return; }
+            const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query));
             const grid = document.getElementById('productsGrid');
-            if (filtered.length === 0) {
-                grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found for "' + query + '"</p>';
-            } else {
-                grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
-            }
+            if (filtered.length === 0) grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:var(--text-secondary); padding:3rem;">No results found.</p>';
+            else grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
         });
-        
-// Force hide loading screen after 3 seconds as a fail-safe
-setTimeout(() => {
-    const loader = document.getElementById('loadingScreen');
-    if (loader && loader.style.display !== 'none') {
-        loader.style.opacity = '0';
+
+        // Fail-safe to force site open if Google Drive gets stuck
         setTimeout(() => {
-            loader.style.display = 'none';
-        }, 500);
-    }
-}, 3000);
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+            }
+        }, 3000);
     </script>
-</body>
-</html>
