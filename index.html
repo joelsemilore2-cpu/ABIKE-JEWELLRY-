@@ -1513,12 +1513,20 @@ function renderCartPage() {
             else grid.innerHTML = filtered.map((p, i) => createProductCard(p, i)).join('');
         });
 
-        // Fail-safe to force site open if Google Drive gets stuck
+        // Add this at the very bottom of your script
+setTimeout(() => {
+    const loader = document.getElementById('loader');
+    if (loader && loader.style.display !== 'none') {
+        console.warn("Sheet taking too long; forcing site to open.");
+        loader.style.opacity = '0';
         setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 500);
+            loader.style.display = 'none';
+            // Show a friendly message if data failed
+            if (products.length === 0) {
+                showToast("Connection slow. Trying to load products...");
+                loadProducts(); 
             }
-        }, 3000);
+        }, 500);
+    }
+}, 4000);
     </script>
