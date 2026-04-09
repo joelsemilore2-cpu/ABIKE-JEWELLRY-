@@ -1518,11 +1518,10 @@ function renderCartPage() {
         });
 
         // ===== SEARCH FUNCTIONALITY =====
-        document.getElementById('searchIcon').addEventListener('click', () => {
-            const bar = document.getElementById('searchBar');
-            bar.style.display = bar.style.display === 'block' ? 'none' : 'block';
-            if (bar.style.display === 'block') document.getElementById('searchInput').focus();
-        });
+        const searchIcon = document.getElementById('searchIcon');
+if (searchIcon) {
+    searchIcon.addEventListener('click', () => {
+    }
 
         document.getElementById('searchInput').addEventListener('input', function() {
             const query = this.value.toLowerCase().trim();
@@ -1545,7 +1544,7 @@ setTimeout(() => {
             // Show a friendly message if data failed
             if (products.length === 0) {
                 showToast("Connection slow. Trying to load products...");
-                loadProducts(); 
+                loadProductsFromSheet();
             }
         }, 500);
     }
