@@ -1209,11 +1209,11 @@
 
         function normalizeCategory(cat) {
             const c = cat.toLowerCase();
-            if (c.includes('necklace')) return 'necklace';
-            if (c.includes('bracelet')) return 'bracelet';
-            if (c.includes('ring')) return 'ring';
-            if (c.includes('earring')) return 'earrings';
-            if (c.includes('set')) return 'sets';
+           if (c.includes('earring')) return 'earrings'; 
+           if (c.includes('necklace')) return 'necklace';
+           if (c.includes('bracelet')) return 'bracelet';
+           if (c.includes('ring')) return 'ring';
+           if (c.includes('set')) return 'sets';
             return 'other';
         }
 
