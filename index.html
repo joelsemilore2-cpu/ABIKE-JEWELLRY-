@@ -882,8 +882,8 @@
             </div>
 
             <div class="about-grid">
-                <div class="about-image">
-                    <img src="logo_1.jpeg" alt="ABIKE Logo" style="width: 120px; height: auto; margin-bottom: 2rem; filter: drop-shadow(0 0 10px var(--gold-glow));">
+                <div class="about-image" style="background: var(--bg-card); display: flex; justify-content: center; padding: 2rem;">
+                    <img src="logo_1.jpeg" alt="ABIKE Logo" style="width: 100%; max-width: 400px; height: auto; border-radius: 15px; filter: drop-shadow(0 0 20px var(--gold-glow));">
                 </div>
                 <div class="about-content">
                     <h2>We Believe <span>Everyone Deserves to Shine</span></h2>
@@ -1098,7 +1098,7 @@
         }, 5000);
 
         // ===== 3. NAVIGATION & UI =====
-        function showView(viewId) {
+      function showView(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             
@@ -1109,6 +1109,11 @@
             if (navLink) navLink.classList.add('active');
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // FIX: Force the cart to render its items whenever the cart page is opened
+            if (viewId === 'cart') {
+                renderCartPage(); 
+            }
         }
 
         function setupNavLinks() {
