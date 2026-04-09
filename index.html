@@ -990,37 +990,6 @@
                     <button class="checkout-btn" id="checkoutBtn" onclick="whatsappCheckout()">
                         <i class="fab fa-whatsapp"></i> Complete Order via WhatsApp
                     </button>
-                    // Open WhatsApp
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-
-    // NEW: Clear the cart and show success state
-    cart = [];
-    localStorage.removeItem('abike_cart');
-    updateCartDisplay();
-    
-    // Show a Success Message instead of just an empty cart
-    const container = document.getElementById('cartItemsContainer');
-    if (container) {
-        container.innerHTML = `
-            <div style="text-align:center; padding:3rem; animation: fadeIn 0.8s ease;">
-                <div style="font-size:4rem; margin-bottom:1rem;">🎉</div>
-                <h2 style="font-family:var(--font-serif); color:var(--gold-primary);">Order Sent to WhatsApp!</h2>
-                <p style="margin:1rem 0; color:var(--text-secondary);">Please send the message in WhatsApp to finalize your order.</p>
-                <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:15px; border:1px solid var(--gold-primary); margin-top:2rem;">
-                    <h4 style="margin-bottom:0.5rem; color:var(--gold-light);">What happens next?</h4>
-                    <ul style="text-align:left; font-size:0.9rem; line-height:1.6;">
-                        <li>1. We will confirm item availability.</li>
-                        <li>2. We'll send total cost + delivery fee.</li>
-                        <li>3. <strong>Standard Delivery:</strong> 1-3 Business Days.</li>
-                    </ul>
-                </div>
-                <button class="btn-add" style="margin-top:2rem;" onclick="showView('homepage')">Continue Shopping</button>
-            </div>
-        `;
-        // Hide the summary/checkout button
-        document.getElementById('cartSummary').style.display = 'none';
-    }
-}
                     
                     <p style="text-align: center; color: var(--text-secondary); font-size: 0.95rem; margin-top: 1.5rem; line-height: 1.6;">
                         <i class="fas fa-lock" style="color: var(--gold-primary);"></i> Your details are secure. Payment is made directly via WhatsApp after order confirmation.
@@ -1485,23 +1454,58 @@
         }
 
         function whatsappCheckout() {
-            if (cart.length === 0) return;
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
-            const total = subtotal - discount;
-            
-            let message = `*🛍️ NEW ORDER - ABIKE Jewelry*%0A%0A*Items:*%0A`;
-            cart.forEach(item => {
-                const color = item.color ? ` *(${item.color.replace('-', ' ')})*` : '';
-                message += `• ${item.name}${color} × ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString('en-NG')}%0A`;
-            });
-            
-            message += `%0A*Subtotal:* ₦${Math.round(subtotal).toLocaleString('en-NG')}%0A`;
-            if (discount > 0) message += `*Discount (ABIKE10):* -₦${Math.round(discount).toLocaleString('en-NG')}%0A`;
-            message += `*Delivery Fee:* To be calculated%0A*TOTAL:* *₦${Math.round(total).toLocaleString('en-NG')}*%0A`;
-            
-            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
-        }
+    if (cart.length === 0) return;
+
+    // 1. Calculate the final numbers for the message
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = subtotal >= DISCOUNT_THRESHOLD ? subtotal * DISCOUNT_PERCENT : 0;
+    const total = subtotal - discount;
+    
+    // 2. Build the WhatsApp Message (This is what makes it bold/neat)
+    let message = `*🛍️ NEW ORDER - ABIKE JEWELRY*%0A%0A`;
+    message += `*Items:*%0A`;
+    
+    cart.forEach(item => {
+        const colorText = item.color ? ` (${item.color})` : '';
+        message += `• ${item.name}${colorText} x${item.quantity} - ₦${(item.price * item.quantity).toLocaleString()}%0A`;
+    });
+    
+    message += `%0A*Subtotal:* ₦${subtotal.toLocaleString()}`;
+    if (discount > 0) message += `%0A*Discount (10%):* -₦${discount.toLocaleString()}`;
+    message += `%0A*TOTAL:* *₦${total.toLocaleString()}*%0A%0A`;
+    message += `_Please confirm availability and delivery fee._`;
+
+    // 3. Open WhatsApp
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
+
+    // 4. Clear the bag and show the "Thank You" screen
+    cart = [];
+    localStorage.removeItem('abike_cart');
+    updateCartDisplay();
+    
+    const container = document.getElementById('cartItemsContainer');
+    const summary = document.getElementById('cartSummary');
+
+    if (summary) summary.style.display = 'none';
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:3rem 1rem; animation: fadeIn 0.8s ease;">
+                <div style="font-size:4rem; margin-bottom:1rem;">🎉</div>
+                <h2 style="font-family:var(--font-serif); color:var(--gold-primary); margin-bottom:1rem;">Order Sent to WhatsApp!</h2>
+                <p style="color:var(--text-secondary); margin-bottom:2rem;">Please hit "Send" in WhatsApp to finalize your order.</p>
+                <div style="background:var(--bg-elevated); padding:1.5rem; border-radius:15px; text-align:left; border:1px solid rgba(212,175,55,0.3);">
+                    <h4 style="color:var(--gold-light); margin-bottom:0.5rem;">What happens next?</h4>
+                    <p style="font-size:0.9rem; line-height:1.6;">
+                        1. We will verify your items.<br>
+                        2. We'll send the delivery fee for your location.<br>
+                        3. <strong>Standard Delivery:</strong> 1-3 Business Days.
+                    </p>
+                </div>
+                <button class="btn-add" style="margin-top:2rem;" onclick="showView('homepage')">Continue Shopping</button>
+            </div>
+        `;
+    }
+}
 
         // ===== 7. UTILITIES & SEARCH =====
         function showToast(message) {
