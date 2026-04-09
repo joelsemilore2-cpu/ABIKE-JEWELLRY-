@@ -365,12 +365,16 @@
             gap: 2.2rem;
         }
         .product-card {
-            background: var(--bg-card); border: var(--border-gold);
-            border-radius: 16px; overflow: hidden; transition: var(--transition);
-            position: relative; display: flex; flex-direction: column;
-            animation: cardEntrance 0.6s ease backwards;
-            box-shadow: var(--shadow-soft);
+            background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 15px;
+    padding: 10px;
         }
+        .product-image {
+    border-radius: 10px;
+    transition: transform 0.5s ease;
+}
         @keyframes cardEntrance { from { opacity: 0; transform: translateY(30px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
         
         .product-card:hover {
@@ -1318,11 +1322,28 @@
         });
 
         // ===== CART FUNCTIONS =====
-    function addToCart(index) {
-    const product = products[index];
-    cart.push(product);
-    localStorage.setItem('abike_cart', JSON.stringify(cart)); // Save to memory
-    updateCartCount();
+    function addToCart(productId, btn) {
+    const product = products.find(p => String(p.id) === String(productId));
+    if (!product) return;
+    
+    const card = btn.closest('.product-card');
+    const selectedColor = card?.querySelector('.color-option.selected')?.dataset.color || 'Gold';
+    
+    const existing = cart.find(item => String(item.id) === String(productId) && item.color === selectedColor);
+    
+    if (existing) {
+        existing.quantity++;
+    } else {
+        cart.push({ 
+            ...product, 
+            quantity: 1, 
+            color: selectedColor, 
+            cartId: `${productId}-${selectedColor}` 
+        });
+    }
+    
+    localStorage.setItem('abike_cart', JSON.stringify(cart));
+    updateCartDisplay(); // This updates the count AND the cart items
     showToast(`${product.name} added to bag!`);
 }
 
